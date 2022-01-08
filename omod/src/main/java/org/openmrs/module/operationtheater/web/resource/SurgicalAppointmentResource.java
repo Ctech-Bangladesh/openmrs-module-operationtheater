@@ -1,7 +1,8 @@
 package org.openmrs.module.operationtheater.web.resource;
 
+import java.util.List;
+import java.util.Set;
 import org.openmrs.Patient;
-import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.bedmanagement.BedDetails;
 import org.openmrs.module.bedmanagement.service.BedManagementService;
@@ -25,14 +26,43 @@ import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOp
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.webservices.validation.ValidateUtil;
 
-import javax.xml.bind.SchemaOutputResolver;
-import java.util.List;
-import java.util.Set;
-
 @Resource(name = RestConstants.VERSION_1
         + "/surgicalAppointment", supportedClass = SurgicalAppointment.class, supportedOpenmrsVersions = { "2.0.*",
                 "2.1.*" })
 public class SurgicalAppointmentResource extends DataDelegatingCrudResource<SurgicalAppointment> {
+	
+	@PropertyGetter("surgicalAppointmentAttributes")
+	public static List<SurgicalAppointmentAttribute> getAttributes(SurgicalAppointment instance) {
+		return instance.getActiveAttributes();
+	}
+	
+	@PropertyGetter("bedNumber")
+	public static String getBedNumber(SurgicalAppointment surgicalAppointment) {
+		BedDetails bedDetails = Context.getService(BedManagementService.class)
+		        .getBedAssignmentDetailsByPatient(surgicalAppointment.getPatient());
+		if (bedDetails == null) {
+			return null;
+		}
+		return bedDetails.getBedNumber();
+	}
+	
+	@PropertyGetter("bedLocation")
+	public static String getBedLocation(SurgicalAppointment surgicalAppointment) {
+		Patient patient = surgicalAppointment.getPatient();
+		BedDetails bedDetails = Context.getService(BedManagementService.class).getBedAssignmentDetailsByPatient(patient);
+		if (bedDetails == null) {
+			return null;
+		}
+		return bedDetails.getPhysicalLocation().getName();
+	}
+	
+	@PropertySetter("surgicalAppointmentAttributes")
+	public static void setAttributes(SurgicalAppointment surgicalAppointment, Set<SurgicalAppointmentAttribute> attrs) {
+		for (SurgicalAppointmentAttribute attr : attrs) {
+			attr.setSurgicalAppointment(surgicalAppointment);
+		}
+		surgicalAppointment.setSurgicalAppointmentAttributes(attrs);
+	}
 	
 	@Override
 	public SurgicalAppointment getByUniqueId(String surgicalAppointmentUuid) {
@@ -122,38 +152,5 @@ public class SurgicalAppointmentResource extends DataDelegatingCrudResource<Surg
 		delegatingResourceDescription.addProperty("sortWeight");
 		delegatingResourceDescription.addProperty("surgicalAppointmentAttributes");
 		return delegatingResourceDescription;
-	}
-	
-	@PropertyGetter("surgicalAppointmentAttributes")
-	public static List<SurgicalAppointmentAttribute> getAttributes(SurgicalAppointment instance) {
-		return instance.getActiveAttributes();
-	}
-	
-	@PropertyGetter("bedNumber")
-	public static String getBedNumber(SurgicalAppointment surgicalAppointment) {
-		BedDetails bedDetails = Context.getService(BedManagementService.class)
-		        .getBedAssignmentDetailsByPatient(surgicalAppointment.getPatient());
-		if (bedDetails == null) {
-			return null;
-		}
-		return bedDetails.getBedNumber();
-	}
-	
-	@PropertyGetter("bedLocation")
-	public static String getBedLocation(SurgicalAppointment surgicalAppointment) {
-		Patient patient = surgicalAppointment.getPatient();
-		BedDetails bedDetails = Context.getService(BedManagementService.class).getBedAssignmentDetailsByPatient(patient);
-		if (bedDetails == null) {
-			return null;
-		}
-		return bedDetails.getPhysicalLocation().getName();
-	}
-	
-	@PropertySetter("surgicalAppointmentAttributes")
-	public static void setAttributes(SurgicalAppointment surgicalAppointment, Set<SurgicalAppointmentAttribute> attrs) {
-		for (SurgicalAppointmentAttribute attr : attrs) {
-			attr.setSurgicalAppointment(surgicalAppointment);
-		}
-		surgicalAppointment.setSurgicalAppointmentAttributes(attrs);
 	}
 }
